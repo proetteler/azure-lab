@@ -1,0 +1,16 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+.terraform.lock.hcl
+
+# Editor / OS
+.DS_Store
+.vscode/
+
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
