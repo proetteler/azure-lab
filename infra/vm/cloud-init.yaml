@@ -2,7 +2,7 @@
 # infra/vm/cloud-init.yaml
 #
 # Läuft automatisch beim ERSTEN Boot der VM. Danach ist die Maschine
-# ohne manuelles Zutun arbeitsfähig: Docker, Python, uv, /data gemountet.
+# ohne manuelles Zutun arbeitsfähig: Docker, Python, uv.
 # Fortschritt auf der VM prüfbar mit:  cloud-init status --wait
 
 package_update: true
@@ -17,35 +17,6 @@ packages:
   - htop
   - jq
 
-write_files:
-  # Mount-Skript für den persistenten Data Disk. Formatiert NUR,
-  # wenn noch kein Dateisystem existiert (schützt bestehende Daten!)
-  - path: /usr/local/bin/mount-data-disk.sh
-    permissions: "0755"
-    content: |
-      #!/usr/bin/env bash
-      set -euo pipefail
-      DEV="/dev/disk/azure/scsi1/lun0"
-
-      # Warten, bis Azure den Disk angehängt hat (Attachment kommt
-      # bei Terraform erst NACH der VM-Erstellung)
-      for i in $(seq 1 60); do
-        [ -e "$DEV" ] && break
-        sleep 5
-      done
-      [ -e "$DEV" ] || { echo "Data disk nicht gefunden"; exit 1; }
-
-      # Nur formatieren, wenn wirklich leer
-      if ! blkid "$DEV" >/dev/null 2>&1; then
-        mkfs.ext4 -L labdata "$DEV"
-      fi
-
-      mkdir -p /data
-      grep -q "$DEV" /etc/fstab || \
-        echo "$DEV /data ext4 defaults,nofail 0 2" >> /etc/fstab
-      mountpoint -q /data || mount /data
-      chown ${admin_username}:${admin_username} /data
-
 runcmd:
   # Docker ohne sudo nutzbar machen
   - usermod -aG docker ${admin_username}
@@ -54,7 +25,4 @@ runcmd:
   # uv (Python-Paketmanager) für den Admin-User installieren
   - sudo -u ${admin_username} sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 
-  # Persistenten Data Disk mounten (wartet auf das Attachment)
-  - /usr/local/bin/mount-data-disk.sh
-
-final_message: "Lab-VM bereit nach $UPTIME Sekunden. /data ist gemountet."
+final_message: "Lab-VM bereit nach $UPTIME Sekunden."

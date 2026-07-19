@@ -2,17 +2,7 @@
 #
 # WEGWERF-SCHICHT ("cattle") – jederzeit zerstörbar und reproduzierbar.
 #   terraform apply    → VM steht in ~3 Min, fertig eingerichtet (cloud-init)
-#   terraform destroy  → alles weg, Data Disk bleibt (gehört persistent/)
-
-# ------------------------------------------------------------------
-# DATA SOURCE: liest den bestehenden Disk aus der persistenten RG.
-# `data` statt `resource` = wir referenzieren nur, wir besitzen nicht.
-# Deshalb bleibt der Disk bei `terraform destroy` unberührt.
-# ------------------------------------------------------------------
-data "azurerm_managed_disk" "data" {
-  name                = var.data_disk_name
-  resource_group_name = var.persistent_rg_name
-}
+#   terraform destroy  → alles weg (keine persistente Schicht angebunden)
 
 resource "azurerm_resource_group" "lab" {
   name     = "rg-${var.prefix}"
@@ -88,7 +78,7 @@ resource "azurerm_network_interface_security_group_association" "lab" {
 
 # ------------------------------------------------------------------
 # VM mit cloud-init: richtet sich beim ersten Boot selbst ein
-# (Docker, Python, uv, /data-Mount) – siehe cloud-init.yaml
+# (Docker, Python, uv) – siehe cloud-init.yaml
 # ------------------------------------------------------------------
 resource "azurerm_linux_virtual_machine" "lab" {
   name                = "vm-${var.prefix}-01"
@@ -122,17 +112,6 @@ resource "azurerm_linux_virtual_machine" "lab" {
   custom_data = base64encode(templatefile("${path.module}/cloud-init.yaml", {
     admin_username = var.admin_username
   }))
-}
-
-# ------------------------------------------------------------------
-# Data Disk an die VM hängen (LUN 0 → stabiler Gerätepfad
-# /dev/disk/azure/scsi1/lun0, den cloud-init zum Mounten nutzt)
-# ------------------------------------------------------------------
-resource "azurerm_virtual_machine_data_disk_attachment" "data" {
-  managed_disk_id    = data.azurerm_managed_disk.data.id
-  virtual_machine_id = azurerm_linux_virtual_machine.lab.id
-  lun                = 0
-  caching            = "ReadWrite"
 }
 
 # ------------------------------------------------------------------

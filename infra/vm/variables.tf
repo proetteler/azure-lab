@@ -1,7 +1,7 @@
 # infra/vm/variables.tf
 
 variable "location" {
-  description = "Azure Region (muss zur persistenten RG passen)"
+  description = "Azure Region"
   type        = string
   default     = "switzerlandnorth"
 }
@@ -43,18 +43,4 @@ variable "auto_shutdown_time" {
   description = "Tägliche Auto-Shutdown-Zeit (HHMM)"
   type        = string
   default     = "2300"
-}
-
-# --- Referenzen auf die persistente Schicht ---
-
-variable "persistent_rg_name" {
-  description = "Resource Group der persistenten Schicht"
-  type        = string
-  default     = "rg-lab-persistent"
-}
-
-variable "data_disk_name" {
-  description = "Name des persistenten Data Disks"
-  type        = string
-  default     = "disk-lab-data"
 }
